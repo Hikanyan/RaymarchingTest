@@ -52,6 +52,18 @@ Shader "Unlit/RaymarchingSphere"
                 return sdSphere(p, 1.0);
             }
 
+            // 偏微分から法線を計算します
+            float3 calcNormal(float3 p)
+            {
+                float eps = 0.001;
+                
+                return normalize(float3(
+                    map(p + float3(eps, 0.0, 0.0)) - map(p + float3(-eps, 0.0, 0.0)),
+                    map(p + float3(0.0, eps, 0.0)) - map(p + float3(0.0, -eps, 0.0)),
+                    map(p + float3(0.0, 0.0, eps)) - map(p + float3(0.0, 0.0, -eps))
+                ));
+            }
+
             fixed4 frag(v2f input) : SV_Target
             {
                 float3 col = float3(0.0, 0.0, 0.0);
@@ -70,8 +82,10 @@ Shader "Unlit/RaymarchingSphere"
 
                 float pi = 3.14159265359;
                 float3 ray = normalize(
-                    forward + uv.x * tan(cameraFov * pi / 180.0) *
-                    right + uv.y * tan(cameraFov * pi / 180.0) * up);
+                    right * uv.x +
+                    up * uv.y +
+                    forward / tan(cameraFov / 360 * pi)
+                );
 
                 // レイマーチング
                 float t = 0.0; // レイの進んだ距離
@@ -97,7 +111,14 @@ Shader "Unlit/RaymarchingSphere"
                 if (hit)
                 {
                     // 何かに衝突したら白
-                    col = float3(1, 1, 1);
+                    //col = float3(1, 1, 1);
+                    // 法線を計算して、法線を色にします
+                    //col = calcNormal(p);
+
+
+                    float3 normal = calcNormal(p);// 法線
+                    float3 light = normalize(float3(1, 1, -1));// 平行光源の方向ベクトル
+                    col = saturate(dot(normal, light));// 内積でライティング（拡散反射）
                 }
                 else
                 {
