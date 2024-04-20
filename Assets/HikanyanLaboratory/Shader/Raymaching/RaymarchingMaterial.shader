@@ -2,7 +2,7 @@ Shader "Unlit/RaymarchingMaterial"
 {
     Properties
     {
-        _BallAlbedo("Ball Albedo", Color) = (1, 1, 0, 1)
+        _BallAlbedo("Ball Albedo", Color) = (1, 0, 0, 1)
         _FloorAlbedoA("Floor Albedo A", Color) = (0, 1, 1, 1)
         _FloorAlbedoB("Floor Albedo B", Color) = (1, 0, 1, 1)
         _SkyTopColor("Sky Top Color", Color) = (0.5, 0.5, 1, 1)
@@ -228,15 +228,19 @@ Shader "Unlit/RaymarchingMaterial"
                     col += albedo * ao * lerp(_SkyBottomColor, _SkyTopColor, 0.3); // 環境光
 
                     // Fog
+                    float fog = exp(-0.02 * t);
+                    col = lerp(_SkyTopColor, col, fog);
                 }
                 else
                 {
-                    // 何にも衝突しなかったら黒
+                    // 空
                     col = lerp(_SkyBottomColor, _SkyTopColor, ray.y);
                 }
 
+                // トーンマッピング
                 col = acesFilm(col * 0.8);
 
+                // ガンマ補正
                 col = pow(col, 1 / 2.2);
 
                 return float4(col, 1);

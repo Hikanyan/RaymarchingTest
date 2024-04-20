@@ -27,8 +27,8 @@ Material:
     m_Floats: []
     m_Colors:
     - _BallAlbedo: {r: 1, g: 1, b: 0, a: 1}
-    - _FloorAlbedoA: {r: 0, g: 1, b: 1, a: 1}
-    - _FloorAlbedoB: {r: 1, g: 0, b: 1, a: 1}
-    - _SkyBottomColor: {r: 1, g: 1, b: 1, a: 1}
-    - _SkyTopColor: {r: 0.5, g: 0.5, b: 1, a: 1}
+    - _FloorAlbedoA: {r: 0.099044085, g: 1, b: 0, a: 1}
+    - _FloorAlbedoB: {r: 0.2399491, g: 1, b: 0.0047169924, a: 1}
+    - _SkyBottomColor: {r: 0.15066528, g: 0, b: 1, a: 1}
+    - _SkyTopColor: {r: 0.02745098, g: 0.5, b: 1, a: 1}
   m_BuildTextureStacks: []
