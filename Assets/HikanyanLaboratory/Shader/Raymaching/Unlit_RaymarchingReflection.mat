@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Unlit_RaymarchingQuadBounds
-  m_Shader: {fileID: 4800000, guid: 940b17bfa0825be469647eca4ad19375, type: 3}
+  m_Name: Unlit_RaymarchingReflection
+  m_Shader: {fileID: 4800000, guid: d95df80eccf4ec34a96300797a164e5a, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -26,9 +26,9 @@ Material:
     m_Ints: []
     m_Floats: []
     m_Colors:
-    - _BallAlbedo: {r: 0.59770846, g: 1, b: 0, a: 1}
+    - _BallAlbedo: {r: 1, g: 0, b: 0, a: 1}
     - _FloorAlbedoA: {r: 0, g: 1, b: 1, a: 1}
     - _FloorAlbedoB: {r: 1, g: 0, b: 1, a: 1}
-    - _SkyBottomColor: {r: 0.3773585, g: 0.3773585, b: 0.3773585, a: 1}
-    - _SkyTopColor: {r: 0, g: 0, b: 1, a: 1}
+    - _SkyBottomColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SkyTopColor: {r: 0.5, g: 0.5, b: 1, a: 1}
   m_BuildTextureStacks: []

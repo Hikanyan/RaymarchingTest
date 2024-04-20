@@ -1,4 +1,4 @@
-Shader "Unlit/RaymarchingQuadBounds"
+Shader "Unlit/RaymarchingReflection"
 {
     Properties
     {
@@ -147,6 +147,97 @@ Shader "Unlit/RaymarchingQuadBounds"
                 return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
             }
 
+            float fresnelSchlick(float f0, float cosTheta)
+            {
+                return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
+            }
+
+            float3 raymarching(inout float3 origin, inout float3 ray, inout bool hit,
+                               inout float3 reflectionAttenuation)
+            {
+                float3 col = float3(0, 0, 0);
+
+                // レイマーチング
+                hit = false;
+                float t = 0.0; // レイの進んだ距離
+                float3 p = origin; // レイの先端の座標
+
+                for (int i = 0; i < 500; i++)
+                {
+                    float d = map(p); // 最短距離を計算します
+
+                    // 最短距離を0に近似できるなら、オブジェクトに衝突したとみなして、ループを抜けます
+                    if (d < 0.0001)
+                    {
+                        hit = true;
+                        break;
+                    }
+
+                    t += d; // 最短距離だけレイを進めます
+                    p = origin + ray * t; // レイの先端の座標を更新します
+                }
+
+                if (hit)
+                {
+                    // ライティング
+                    float3 normal = calcNormal(p); // 法線を計算します
+                    float3 light = _WorldSpaceLightPos0; // 平行光線の方向ベクトル
+                    float3 ref = reflect(ray, normal); // 反射ベクトル
+                    float f0 = 1; // フレネル反射率
+
+
+                    // マテリアル
+                    float3 albedo = float3(1, 1, 1);
+                    float metalness = 0.5;
+
+                    // ボール
+                    if (dBall(p) < 0.0001)
+                    {
+                        albedo = _BallAlbedo;
+                        metalness = 0.8;
+                        f0 = 0.3;
+                    }
+
+                    // 床
+                    if (dFloor(p) < 0.0001)
+                    {
+                        float checker = mod(floor(p.x) + floor(p.z), 2.0);
+                        albedo = lerp(_FloorAlbedoA, _FloorAlbedoB, checker);
+                        metalness = 0.1;
+                        f0 = 0.4;
+                    }
+
+                    // ライティングを計算します     
+
+                    float diffuse = saturate(dot(normal, light)); // 拡散反射
+                    float specular = pow(saturate(dot(reflect(light, normal), ray)), 10.0); // 鏡面反射
+                    float ao = calcAO(p, normal); // AO
+                    float shadow = calcSoftshadow(p, light, 0.25, 5); // シャドウ
+
+
+                    col += albedo * diffuse * shadow * (1 - metalness) * _LightColor0.rgb; // 直接光の拡散反射
+                    col += albedo * specular * shadow * metalness * _LightColor0.rgb; // 直接光の鏡面反射
+                    col += albedo * ao * lerp(_SkyBottomColor, _SkyTopColor, 0.3); // 環境光
+
+                    // Fog
+                    float fog = exp(-0.02 * t);
+                    col = lerp(_SkyTopColor, col, fog);
+
+                    // Shaderでは再起関数を使うことができない
+                    reflectionAttenuation *= albedo * fresnelSchlick(f0, dot(ref, normal)) * fog; // 反射の減衰
+
+                    origin = p + 0.0f * normal; // レイの先端の座標を更新します
+                    ray = ref; // レイの方向ベクトルを更新します
+                }
+                else
+                {
+                    // 空
+                    col = lerp(_SkyBottomColor, _SkyTopColor, ray.y);
+                }
+
+                return col;
+            }
+
             float4 frag(v2f input): SV_Target
             {
                 float3 col = float3(0, 0, 0);
@@ -168,71 +259,14 @@ Shader "Unlit/RaymarchingQuadBounds"
                 float3 viewRay = normalize(mul(unity_CameraInvProjection, clipRay).xyz); // ビュー空間のレイ
                 float3 ray = mul(transpose((float3x3)UNITY_MATRIX_V), viewRay); // ワールド空間のレイ
 
+                bool hit = false;
+                float3 reflectionAttenuation = float3(1, 1, 1); // 反射の減衰
 
-                // レイマーチング
-                float t = 0.0; // レイの進んだ距離
-                float3 p = cameraOrigin; // レイの先端の座標
-                bool hit = false; // オブジェクトに衝突したかどうか
 
-                for (int i = 0; i < 500; i++)
+                for (int i = 0; i < 1; i++)
                 {
-                    float d = map(p); // 最短距離を計算します
-
-                    // 最短距離を0に近似できるなら、オブジェクトに衝突したとみなして、ループを抜けます
-                    if (d < 0.0001)
-                    {
-                        hit = true;
-                        break;
-                    }
-
-                    t += d; // 最短距離だけレイを進めます
-                    p = cameraOrigin + ray * t; // レイの先端の座標を更新します
-                }
-
-                if (hit)
-                {
-                    // ライティング
-                    float3 normal = calcNormal(p); // 法線を計算します
-                    float light = normalize(float3(0.5, 1, 0.5)); // 平行光線の方向ベクトル
-
-                    // マテリアル
-                    float3 albedo = float3(0, 0, 0);
-                    float metalness = 0.5;
-
-                    // ボール
-                    if (dBall(p) < 0.0001)
-                    {
-                        albedo = _BallAlbedo;
-                        metalness = 0.8;
-                    }
-
-                    // 床
-                    if (dFloor(p) < 0.0001)
-                    {
-                        float checker = mod(floor(p.x) + floor(p.z), 2.0);
-                        albedo = lerp(_FloorAlbedoA, _FloorAlbedoB, checker);
-                        metalness = 0.1;
-                    }
-
-                    float diffuse = saturate(dot(normal, light)); // 拡散反射
-                    float specular = pow(saturate(dot(reflect(ray, normal), ray)), 10.0); // 鏡面反射
-                    float ao = calcAO(p, normal); // AO
-                    float shadow = calcSoftshadow(p, light, 0.25, 5); // シャドウ
-
-
-                    // ライティングを計算します                    
-                    col += albedo * diffuse * shadow * (1 - metalness); // 直接光の拡散反射
-                    col += albedo * specular * shadow * metalness; // 直接光の鏡面反射
-                    col += albedo * ao * lerp(_SkyBottomColor, _SkyTopColor, 0.3); // 環境光
-
-                    // Fog
-                    float fog = exp(-0.02 * t);
-                    col = lerp(_SkyTopColor, col, fog);
-                }
-                else
-                {
-                    // 空
-                    col = lerp(_SkyBottomColor, _SkyTopColor, ray.y);
+                    col += reflectionAttenuation * raymarching(cameraOrigin, ray, hit, reflectionAttenuation);
+                    if (!hit) break;
                 }
 
                 // トーンマッピング
